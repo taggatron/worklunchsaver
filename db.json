@@ -1,7 +1,9 @@
 {
-  "totalPence": 310,
-  "count": 1,
+  "totalPence": 930,
+  "count": 3,
   "history": [
+    310,
+    310,
     310
   ]
 }

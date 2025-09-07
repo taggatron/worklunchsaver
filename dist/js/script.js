@@ -4,23 +4,27 @@ const HOME_PENCE = 30;
 const SAVE_PENCE = BUY_PENCE - HOME_PENCE; // 310 pence = £3.10
 
 const STORAGE_KEY = 'worklunch_saver_v1';
-const SERVER_STATE_URL = '/state';
+// Try same-origin first, then fallback to localhost:3000 for the Node server
+const SERVER_STATE_URLS = ['/state', 'http://localhost:3000/state'];
 
 function formatPence(pence){
   const pounds = (pence/100).toFixed(2);
   return `£${pounds}`;
 }
 
-async function loadState(){
-  // Try server first
+async function tryFetchState(url){
   try{
-    const res = await fetch(SERVER_STATE_URL, {cache: 'no-store'});
-    if(res.ok){
-      const json = await res.json();
-      return json;
-    }
-  }catch(e){
-    // server not available, fall back to localStorage
+    const res = await fetch(url, {cache: 'no-store'});
+    if(res.ok) return await res.json();
+  }catch(e){/* ignore */}
+  return null;
+}
+
+async function loadState(){
+  // Try configured server endpoints in order
+  for(const url of SERVER_STATE_URLS){
+    const s = await tryFetchState(url);
+    if(s) return s;
   }
 
   try{
@@ -34,17 +38,18 @@ async function loadState(){
 }
 
 async function saveState(state){
-  // Try writing to server; if it fails, write to localStorage
-  try{
-    const res = await fetch(SERVER_STATE_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(state)
-    });
-    if(res.ok) return;
-  }catch(e){
-    // ignore
+  // Try writing to server endpoints in order; if none succeed, write to localStorage
+  for(const url of SERVER_STATE_URLS){
+    try{
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(state)
+      });
+      if(res.ok) return;
+    }catch(e){/* try next */}
   }
+
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }catch(e){
@@ -57,6 +62,7 @@ const countEl = document.getElementById('count');
 const addBtn = document.getElementById('addLunch');
 const undoBtn = document.getElementById('undoLunch');
 const resetBtn = document.getElementById('reset');
+// export/import UI removed — keep compatibility if present in DOM
 const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
@@ -99,50 +105,16 @@ resetBtn.addEventListener('click', async ()=>{
   render();
 });
 
-// Export current state as JSON file
-exportBtn.addEventListener('click', ()=>{
-  const dataStr = JSON.stringify(state, null, 2);
-  const blob = new Blob([dataStr], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  a.download = `worklunchsaver-backup-${now}.json`;
-  a.href = url;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-});
-
-// Import: open file picker
-importBtn.addEventListener('click', ()=>importFile.click());
-
-importFile.addEventListener('change', (ev)=>{
-  const file = ev.target.files && ev.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = async () => {
-    try{
-      const parsed = JSON.parse(reader.result);
-      // basic validation
-      if(typeof parsed.totalPence !== 'number' || typeof parsed.count !== 'number' || !Array.isArray(parsed.history)){
-        alert('Invalid backup file format');
-        return;
-      }
-      if(!confirm('Importing will replace your current saved total. Continue?')) return;
-      state = {totalPence: parsed.totalPence, count: parsed.count, history: parsed.history};
-      await saveState(state);
-      render();
-      alert('Import successful');
-    }catch(e){
-      console.error('Failed to import', e);
-      alert('Failed to read file as JSON');
-    }
-  };
-  reader.readAsText(file);
-  // clear input so same file can be selected again later
-  importFile.value = '';
-});
+// Export/import UI intentionally removed from HTML — if buttons exist do nothing
+if(exportBtn){
+  exportBtn.style.display = 'none';
+}
+if(importBtn){
+  importBtn.style.display = 'none';
+}
+if(importFile){
+  importFile.style.display = 'none';
+}
 
 // Initial render
 render();
