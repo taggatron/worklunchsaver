@@ -30,6 +30,9 @@ const countEl = document.getElementById('count');
 const addBtn = document.getElementById('addLunch');
 const undoBtn = document.getElementById('undoLunch');
 const resetBtn = document.getElementById('reset');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFile = document.getElementById('importFile');
 
 let state = loadState();
 
@@ -61,6 +64,51 @@ resetBtn.addEventListener('click', ()=>{
   state = {totalPence:0,count:0,history:[]};
   saveState(state);
   render();
+});
+
+// Export current state as JSON file
+exportBtn.addEventListener('click', ()=>{
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.download = `worklunchsaver-backup-${now}.json`;
+  a.href = url;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// Import: open file picker
+importBtn.addEventListener('click', ()=>importFile.click());
+
+importFile.addEventListener('change', (ev)=>{
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      // basic validation
+      if(typeof parsed.totalPence !== 'number' || typeof parsed.count !== 'number' || !Array.isArray(parsed.history)){
+        alert('Invalid backup file format');
+        return;
+      }
+      if(!confirm('Importing will replace your current saved total. Continue?')) return;
+      state = {totalPence: parsed.totalPence, count: parsed.count, history: parsed.history};
+      saveState(state);
+      render();
+      alert('Import successful');
+    }catch(e){
+      console.error('Failed to import', e);
+      alert('Failed to read file as JSON');
+    }
+  };
+  reader.readAsText(file);
+  // clear input so same file can be selected again later
+  importFile.value = '';
 });
 
 // Initial render

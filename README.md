@@ -13,6 +13,11 @@ How it works:
 - "Reset" clears all data.
 - Data is stored in your browser's `localStorage` so it stays on this device/browser.
 
+Export / Import (backup)
+- Click "Export JSON" to download a small JSON backup of your totals (timestamped filename).
+- Move that file to another device and open the site there to use "Import JSON" and restore your totals.
+- Import replaces the current local totals (you will be asked to confirm).
+
 Run locally:
 Open `index.html` in a browser.
 
