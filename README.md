@@ -1,5 +1,23 @@
 # Work Lunch Saver
 
+## Local persistence with db.json
+
+This project stores state in the browser by default (localStorage). To persist state to a file in the project directory, you can run the included Node.js server which exposes a simple JSON API and writes to `db.json`.
+
+Files added:
+- `server.js` - small Express server with GET/POST /state
+- `db.json` - the JSON file that stores `{ totalPence, count, history }`
+- `package.json` - to install dependencies and run the server
+
+Run locally:
+
+1. npm install
+2. npm start
+
+Then open the app at http://localhost:3000 (or open `index.html` normally). When the server is available the client will read/write state from `/state` and updates will be written to `db.json`.
+
+If the server isn't running the client falls back to localStorage as before.
+
 Simple static app that tracks how much you've saved by making lunch at home instead of buying one for £3.40. Each home-made lunch is assumed to cost £0.30, so each saved lunch equals £3.10.
 
 Files:

@@ -4,13 +4,25 @@ const HOME_PENCE = 30;
 const SAVE_PENCE = BUY_PENCE - HOME_PENCE; // 310 pence = £3.10
 
 const STORAGE_KEY = 'worklunch_saver_v1';
+const SERVER_STATE_URL = '/state';
 
 function formatPence(pence){
   const pounds = (pence/100).toFixed(2);
   return `£${pounds}`;
 }
 
-function loadState(){
+async function loadState(){
+  // Try server first
+  try{
+    const res = await fetch(SERVER_STATE_URL, {cache: 'no-store'});
+    if(res.ok){
+      const json = await res.json();
+      return json;
+    }
+  }catch(e){
+    // server not available, fall back to localStorage
+  }
+
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return {totalPence:0,count:0,history:[]};
@@ -21,8 +33,23 @@ function loadState(){
   }
 }
 
-function saveState(state){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function saveState(state){
+  // Try writing to server; if it fails, write to localStorage
+  try{
+    const res = await fetch(SERVER_STATE_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(state)
+    });
+    if(res.ok) return;
+  }catch(e){
+    // ignore
+  }
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){
+    console.error('Failed to save state locally', e);
+  }
 }
 
 const totalEl = document.getElementById('total');
@@ -34,7 +61,13 @@ const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
 
-let state = loadState();
+let state = {totalPence:0,count:0,history:[]};
+
+// Initialize asynchronously
+(async ()=>{
+  state = await loadState();
+  render();
+})();
 
 function render(){
   totalEl.textContent = formatPence(state.totalPence);
@@ -42,27 +75,27 @@ function render(){
   undoBtn.disabled = state.history.length === 0;
 }
 
-addBtn.addEventListener('click', ()=>{
+addBtn.addEventListener('click', async ()=>{
   state.totalPence += SAVE_PENCE;
   state.count += 1;
   state.history.push(SAVE_PENCE);
-  saveState(state);
+  await saveState(state);
   render();
 });
 
-undoBtn.addEventListener('click', ()=>{
+undoBtn.addEventListener('click', async ()=>{
   if(state.history.length === 0) return;
   const last = state.history.pop();
   state.totalPence -= last;
   state.count = Math.max(0, state.count - 1);
-  saveState(state);
+  await saveState(state);
   render();
 });
 
-resetBtn.addEventListener('click', ()=>{
+resetBtn.addEventListener('click', async ()=>{
   if(!confirm('Reset total saved and count? This cannot be undone.')) return;
   state = {totalPence:0,count:0,history:[]};
-  saveState(state);
+  await saveState(state);
   render();
 });
 
@@ -88,7 +121,7 @@ importFile.addEventListener('change', (ev)=>{
   const file = ev.target.files && ev.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
       const parsed = JSON.parse(reader.result);
       // basic validation
@@ -98,7 +131,7 @@ importFile.addEventListener('change', (ev)=>{
       }
       if(!confirm('Importing will replace your current saved total. Continue?')) return;
       state = {totalPence: parsed.totalPence, count: parsed.count, history: parsed.history};
-      saveState(state);
+      await saveState(state);
       render();
       alert('Import successful');
     }catch(e){
