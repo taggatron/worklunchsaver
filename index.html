@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Work Lunch Saver</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Work Lunch Saver</h1>
+    <p class="lead">Track how much you've saved by making lunch at home instead of buying one for £3.40.</p>
+
+    <div class="card">
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Total saved</div>
+          <div id="total" class="value">£0.00</div>
+        </div>
+        <div class="stat">
+          <div class="label">Lunches counted</div>
+          <div id="count" class="value">0</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="addLunch" class="btn">Add a lunch saved</button>
+        <button id="undoLunch" class="btn secondary">Undo last</button>
+        <button id="reset" class="btn danger">Reset</button>
+      </div>
+
+      <p class="note">Assumes buying lunch costs <strong>£3.40</strong> and making lunch costs <strong>£0.30</strong> → each saved lunch = <strong>£3.10</strong>.</p>
+    </div>
+    <footer>
+      <small>Uses localStorage — your total stays in this browser on this device.</small>
+    </footer>
+  </main>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
