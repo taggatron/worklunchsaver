@@ -4,7 +4,8 @@
   "description": "Work Lunch Saver - local server to persist state to db.json",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "mkdir -p dist && cp -R index.html css js db.json dist/"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
